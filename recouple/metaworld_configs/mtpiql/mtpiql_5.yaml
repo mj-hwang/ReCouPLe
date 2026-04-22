@@ -1,0 +1,96 @@
+alg: MTPIQL
+alg_kwargs:
+  beta: 0.3333
+  expectile: 0.7
+  reward_steps: 100000
+  eval_tasks: [0, 1, 2, 3]
+
+optim: Adam
+optim_kwargs:
+  lr: 0.0003
+
+network: ActorCriticValueRewardPolicy
+network_kwargs:
+  actor_class: ContinuousMLPLCActor
+  actor_kwargs:
+    dropout: 0.25 # only actor gets dropout sometimes.
+    output_act: ["import", "torch.nn", "Tanh"]
+  critic_class: ContinuousMLPLCCritic
+  critic_kwargs:
+    ensemble_size: 2
+  value_class: MLPLCValue
+  value_kwargs:
+    ensemble_size: 1
+  reward_class: ContinuousMLPEncoder
+  reward_kwargs:
+    ensemble_size: 1
+  act: ["import", "torch.nn", "ReLU"]
+  hidden_layers: [512, 512]
+  ortho_init: True
+
+checkpoint: null
+
+# eval_env: [mw_pick-place-v2, mw_pick-place-wall-v2, mw_push-v2, mw_push-wall-v2, mw_reach-v2, mw_reach-wall-v2]
+
+eval_env: mw_reach-wall-v2
+
+dataset: PreferenceDictDataset
+dataset_kwargs:
+  path: comparison_dataset/data_mw_multitask_with_reason_5.npz
+  batch_size: 64
+  segment_length: null # default to 64
+  capacity: 2500 # How many segments in the dataset
+  label_key: rl_sum
+  mode: rank
+  discount: 0.99
+validation_dataset_kwargs:
+  path: comparison_dataset/data_mw_multitask_with_reason_validation.npz
+  # The following are redundant. Batch size is set in trainer_kwargs.
+  batch_size: 400
+  segment_length: null # default to 64
+  capacity: 2500 # How many segments in the dataset
+  label_key: rl_sum
+  mode: rank
+
+
+schedule:
+  actor: ["import", "torch.optim.lr_scheduler", "CosineAnnealingLR"]
+schedule_kwargs:
+  actor:
+    T_max: 500000
+
+processor: null
+
+trainer_kwargs: # Arguments given to Algorithm.train
+  total_steps: 50000 # The total number of steps to train
+  log_freq: 2500 # How often to log values
+  profile_freq: 2500
+  eval_freq: 2500 # How often to run evals
+  # eval_fn: eval_policy # eval_multiple_envs
+  eval_kwargs:
+    num_ep: -1 # Number of enviornment episodes to run for evaluation, or -1 if none should be run.
+  loss_metric: reward # The validation metric that determines when to save the "best_checkpoint"
+  train_dataloader_kwargs:
+    num_workers: 0 # Number of dataloader workers.
+    batch_size: 256
+  validation_dataloader_kwargs:
+    num_workers: 0 # Number of dataloader workers.
+    batch_size: 1600
+
+seed: 5
+
+relabel_data_paths: 
+  [
+    comparison_dataset/data_mw_offlinerl_pick-place-v2_5.npz,
+    comparison_dataset/data_mw_offlinerl_pick-place-wall-v2_5.npz,
+    comparison_dataset/data_mw_offlinerl_push-v2_5.npz,
+    comparison_dataset/data_mw_offlinerl_push-wall-v2_5.npz,
+  ]
+
+new_data_paths: 
+  [
+    comparison_dataset/data_mw_offlinerl_pick-place-v2_5_mtpiql.npz,
+    comparison_dataset/data_mw_offlinerl_pick-place-wall-v2_5_mtpiql.npz,
+    comparison_dataset/data_mw_offlinerl_push-v2_5_mtpiql.npz,
+    comparison_dataset/data_mw_offlinerl_push-wall-v2_5_mtpiql.npz,
+  ]

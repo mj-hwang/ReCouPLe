@@ -1,0 +1,107 @@
+alg: RPLProjEQ
+alg_kwargs:
+  beta: 0.3333
+  expectile: 0.7
+  reward_steps: 100000
+  eval_tasks: [0, 1, 2, 3, 4, 5, 6, 7]
+  reason_reward_ratio_threshold: 0.4
+
+optim: Adam
+optim_kwargs:
+  lr: 0.0003
+
+network: ActorCriticValueRewardPolicy
+network_kwargs:
+  actor_class: ContinuousMLPLCActor
+  actor_kwargs:
+    dropout: 0.25 # only actor gets dropout sometimes.
+    output_act: ["import", "torch.nn", "Tanh"]
+  critic_class: ContinuousMLPLCCritic
+  critic_kwargs:
+    ensemble_size: 2
+  value_class: MLPLCValue
+  value_kwargs:
+    ensemble_size: 1
+  reward_class: ContinuousMLPEncoder
+  reward_kwargs:
+    ensemble_size: 1
+  act: ["import", "torch.nn", "ReLU"]
+  hidden_layers: [512, 512]
+  ortho_init: True
+
+checkpoint: null
+
+# eval_env: [mw_pick-place-v2, mw_pick-place-wall-v2, mw_push-v2, mw_push-wall-v2, mw_reach-v2, mw_reach-wall-v2]
+
+# eval_env: mw_reach-wall-v2
+eval_env: ManiSkillStateEnv
+eval_env_kwargs:
+  env_name: "PickLargerCube-v1"
+
+dataset: PreferenceDictDataset
+dataset_kwargs:
+  path: maniskill_dataset/data_pick_larger_push_larger_place_larger_pull_larger_train_4000_sac.npz
+  batch_size: 96
+  segment_length: null # default to 64
+  capacity: 2500 # How many segments in the dataset
+  label_key: rl_sum
+  mode: rank
+  discount: 0.99
+validation_dataset_kwargs:
+  path: maniskill_dataset/data_all_valid_400_sac.npz
+  # The following are redundant. Batch size is set in trainer_kwargs.
+  batch_size: 400
+  segment_length: null # default to 64
+  capacity: 2500 # How many segments in the dataset
+  label_key: rl_sum
+  mode: rank
+
+
+schedule:
+  actor: ["import", "torch.optim.lr_scheduler", "CosineAnnealingLR"]
+schedule_kwargs:
+  actor:
+    T_max: 500000
+
+processor: null
+
+trainer_kwargs: # Arguments given to Algorithm.train
+  total_steps: 100000 # The total number of steps to train
+  log_freq: 1000 # How often to log values
+  profile_freq: 1000
+  eval_freq: 1000 # How often to run evals
+  # eval_fn: eval_policy # eval_multiple_envs
+  eval_kwargs:
+    num_ep: -1 # Number of enviornment episodes to run for evaluation, or -1 if none should be run.
+  loss_metric: reward # The validation metric that determines when to save the "best_checkpoint"
+  train_dataloader_kwargs:
+    num_workers: 0 # Number of dataloader workers.
+    batch_size: 256
+  validation_dataloader_kwargs:
+    num_workers: 0 # Number of dataloader workers.
+    batch_size: 400
+
+seed: 3
+
+relabel_data_paths: 
+  [
+    maniskill_dataset/data_offlinerl_pick_larger_2000_sac.npz,
+    maniskill_dataset/data_offlinerl_place_larger_2000_sac.npz,
+    maniskill_dataset/data_offlinerl_pull_larger_2000_sac.npz,
+    maniskill_dataset/data_offlinerl_push_larger_2000_sac.npz,
+    maniskill_dataset/data_offlinerl_pick_larger_swapped_2000_sac.npz,
+    maniskill_dataset/data_offlinerl_place_larger_swapped_2000_sac.npz,
+    maniskill_dataset/data_offlinerl_pull_larger_swapped_2000_sac.npz,
+    maniskill_dataset/data_offlinerl_push_larger_swapped_2000_sac.npz,
+  ]
+new_data_paths: 
+  [
+    maniskill_dataset/data_offlinerl_pick_larger_2000_recouple_eq_point4_3_4task.npz,
+    maniskill_dataset/data_offlinerl_place_larger_2000_recouple_eq_point4_3_4task.npz,
+    maniskill_dataset/data_offlinerl_pull_larger_2000_recouple_eq_point4_3_4task.npz,
+    maniskill_dataset/data_offlinerl_push_larger_2000_recouple_eq_point4_3_4task.npz,
+    maniskill_dataset/data_offlinerl_pick_larger_swapped_2000_recouple_eq_point4_3_4task.npz,
+    maniskill_dataset/data_offlinerl_place_larger_swapped_2000_recouple_eq_point4_3_4task.npz,
+    maniskill_dataset/data_offlinerl_pull_larger_swapped_2000_recouple_eq_point4_3_4task.npz,
+    maniskill_dataset/data_offlinerl_push_larger_swapped_2000_recouple_eq_point4_3_4task.npz,
+  ]
